@@ -2,16 +2,15 @@ import sys
 from typing import List, Optional
 from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
-from qdrant_client.models import Filter, FieldCondition, MatchValue
-
 
 class ProductSearchEngine:
-    """Product search engine using Qdrant vector database."""
     
     def __init__(self, host: str = "localhost", port: int = 6334):
 
         self.collection_name = "products"
         self.model_name = "all-MiniLM-L6-v2"
+
+        self.model = SentenceTransformer(self.model_name)
         
         # Initialize Qdrant client
         try:
@@ -22,11 +21,14 @@ class ProductSearchEngine:
             )
             # Test connection and collection
             collection_info = self.client.get_collection(self.collection_name)
-            print(f"\nConnected to Qdrant at http://{host}:{port}")
+            print(f"Connected to Qdrant at http://{host}:{port}")
+            print(f"Collection '{self.collection_name}' found with {collection_info.vectors_count} vectors")
         except Exception as e:
-            print(f"\nQdrant error: {e}")
+            print(f"Failed to connect to Qdrant or access collection: {e}")
+            sys.exit(1)
     
     def search(self, query: str, limit: int = 10) -> List[dict]:
+
         # Generate query embedding
         query_vector = self.model.encode(query).tolist()
         
@@ -45,10 +47,12 @@ class ProductSearchEngine:
             return []
     
     def format_results(self, results: List) -> str:
+
         if not results:
             return "No matching products found."
         
-        output = ["\nTop 10 most similar product"]
+        output = ["\nTop 10 most similar product IDs:"]
+        output.append("-" * 40)
         
         for i, result in enumerate(results, 1):
             product_id = result.payload.get('product_id', 'Unknown')
@@ -62,7 +66,8 @@ class ProductSearchEngine:
             else:
                 output.append(f"{i:2}. ID: {product_id} (Score: {score:.4f})")
         
-        return "\n\n".join(output)
+        output.append("-" * 40)
+        return "\n".join(output)
 
 def clear_screen():
     """Clear the terminal screen."""
@@ -71,20 +76,27 @@ def clear_screen():
 
 def main():
 
+    # Initialize search engine
     try:
         engine = ProductSearchEngine()
     except Exception as e:
         print(f"Failed to initialize search engine: {e}")
         sys.exit(1)
-
+    
+    print("\nReady for searches!\n")
+    
+    # Interactive search loop
     while True:
         try:
-            # user input
-            query = input("\nEnter a product query (or type 'exit' to quit): ").strip()
+            # Get user input
+            query = input("Enter a product query (or type 'exit' to quit): ").strip()
             
+            # Check for special commands
             if query.lower() == 'exit':
                 break
             
+            # Perform search
+            print(f"\nSearching for: '{query}'...")
             results = engine.search(query, limit=10)
             
             # Display results
@@ -93,8 +105,11 @@ def main():
             print()
             
         except KeyboardInterrupt:
-            print("\n\nKeyboard interrupt")
+            print("\n\nInterrupted by user. Exiting...")
             break
+        except Exception as e:
+            print(f"✗ An error occurred: {e}")
+            print("Please try again or type 'exit' to quit.")
 
 if __name__ == "__main__":
     main()

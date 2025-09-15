@@ -53,26 +53,26 @@
 
 #############################################################
 
-import json
-import random
+# import json
+# import random
 
-in_path = "final_data_qdrant.json"
-out_path = "products_5.json"
-k = 5
+# in_path = "final_data_qdrant.json"
+# out_path = "products_5.json"
+# k = 5
 
-# Optional: reproducible sampling
-# random.seed(42)
+# # Optional: reproducible sampling
+# # random.seed(42)
 
-with open(in_path, "r", encoding="utf-8") as f:
-    data = json.load(f)  # data is a Python list of dicts
+# with open(in_path, "r", encoding="utf-8") as f:
+#     data = json.load(f)  # data is a Python list of dicts
 
-# Guard if fewer than k items
-k = min(k, len(data))
+# # Guard if fewer than k items
+# k = min(k, len(data))
 
-sampled = random.sample(data, k)  # uniform, without replacement
+# sampled = random.sample(data, k)  # uniform, without replacement
 
-with open(out_path, "w", encoding="utf-8") as out:
-    json.dump(sampled, out, indent=2, ensure_ascii=False)
+# with open(out_path, "w", encoding="utf-8") as out:
+#     json.dump(sampled, out, indent=2, ensure_ascii=False)
 
 
 #############################################################
@@ -81,11 +81,11 @@ with open(out_path, "w", encoding="utf-8") as out:
 
 # # Input and output file paths
 # input_file = "products_backup-08_19_2025.json"       # your input NDJSON file
-# output_file = "filtered_products_qdrant.json"  # new JSON file
+# output_file = "filtered_products_neo4j.json"  # new JSON file
 
 # # Fields to extract
 # fields_to_extract = [
-#     "id", "name", "description", "short_description"
+#     "id", "name", "short_description", "filterAttributes", "miscAttributes", "configAttributes", "keyAttributes"
 # ]
 
 # filtered_products = []
@@ -119,8 +119,8 @@ with open(out_path, "w", encoding="utf-8") as out:
 # import re
 
 # # Input and output file paths
-# input_file = "filtered_products_qdrant.json"
-# output_file = "final_data_qdrant.json"
+# input_file = "filtered_products_neo4j.json"
+# output_file = "final_data_neo4j.json"
 
 # # Load JSON
 # with open(input_file, "r", encoding="utf-8") as f:
@@ -150,3 +150,39 @@ with open(out_path, "w", encoding="utf-8") as out:
 # # Save cleaned JSON into a new file
 # with open(output_file, "w", encoding="utf-8") as f:
 #     json.dump(products, f, ensure_ascii=False, indent=2)
+
+
+###################################################################
+
+# import json
+
+# # Load your JSON (replace 'data.json' with your actual file path)
+# with open("final_data_qdrant.json", "r") as f:
+#     data = json.load(f)
+
+# def is_empty(value):
+#     return not isinstance(value, str) or not value.strip()
+
+# empty_both = sum(
+#     1 for item in data
+#     if is_empty(item.get("description")) and is_empty(item.get("short_description"))
+# )
+
+# print(f"Number of blocks with empty description AND empty short_description: {empty_both}")
+
+#check for item in name
+# import json
+
+# with open("final_data_neo4j.json", "r") as f:
+#     data = json.load(f)
+
+# search_str = "CX-112"
+
+# matches = [
+#     item for item in data
+#     if isinstance(item.get("name"), str) and search_str in item["name"]
+# ]
+
+# print(f"Number of matches: {len(matches)}")
+# for m in matches:
+#     print(m["id"], "->", m["name"])

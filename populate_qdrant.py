@@ -7,8 +7,8 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
 from tqdm import tqdm
 
-
 def load_product_data(file_path: str) -> pd.DataFrame:
+
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -29,6 +29,7 @@ def load_product_data(file_path: str) -> pd.DataFrame:
 def preprocess_products(df: pd.DataFrame) -> pd.DataFrame:
 
     def create_embedding_text(row):
+        """Concatenate non-null text fields for embedding."""
         parts = []
         
         # Add name if exists
@@ -80,7 +81,7 @@ def initialize_qdrant_collection(client: QdrantClient, collection_name: str, vec
         if exists:
             print(f"Collection '{collection_name}' exists. Deleting...")
             client.delete_collection(collection_name)
-            print(f"Deleted existing collection '{collection_name}'")
+            print(f"✓ Deleted existing collection '{collection_name}'")
         
         # Create new collection
         client.recreate_collection(
@@ -90,7 +91,7 @@ def initialize_qdrant_collection(client: QdrantClient, collection_name: str, vec
                 distance=Distance.COSINE
             )
         )
-        print(f"Created collection '{collection_name}' with vector size {vector_size}")
+        print(f"✓ Created collection '{collection_name}' with vector size {vector_size}")
         
     except Exception as e:
         print(f"✗ Error initializing collection: {e}")
@@ -102,6 +103,7 @@ def upload_to_qdrant(
     df: pd.DataFrame,
     embeddings: List[List[float]]
 ):
+
     points = []
     
     for idx, (_, row) in enumerate(df.iterrows()):
@@ -126,6 +128,8 @@ def upload_to_qdrant(
     batch_size = 100
     total_points = len(points)
     
+    print(f"Uploading {total_points} vectors to Qdrant...")
+    
     for i in tqdm(range(0, total_points, batch_size)):
         batch = points[i:i + batch_size]
         client.upsert(
@@ -136,7 +140,6 @@ def upload_to_qdrant(
     print(f"Successfully uploaded {total_points} vectors to collection '{collection_name}'")
 
 def main():
-    
     # Configuration
     QDRANT_HOST = "localhost"
     QDRANT_PORT = 6334
@@ -145,8 +148,9 @@ def main():
     VECTOR_SIZE = 384  # Size for all-MiniLM-L6-v2
     DATA_FILE = "final_data_qdrant.json"
     
+    # Initialize sentence transformer
     model = SentenceTransformer(MODEL_NAME)
-  
+    
     # Initialize Qdrant client
     try:
         client = QdrantClient(
@@ -156,9 +160,9 @@ def main():
         )
         # Test connection
         client.get_collections()
-        print(f"\nConnected to Qdrant at http://{QDRANT_HOST}:{QDRANT_PORT}")
+        print(f"Connected to Qdrant at http://{QDRANT_HOST}:{QDRANT_PORT}")
     except Exception as e:
-        print(f"\nFailed to connect to Qdrant: {e}")
+        print(f"Failed to connect to Qdrant: {e}")
         sys.exit(1)
     
     # Load and preprocess data
@@ -174,6 +178,13 @@ def main():
     
     # Upload to Qdrant
     upload_to_qdrant(client, COLLECTION_NAME, df, embeddings)
+    
+    # Verify upload
+    collection_info = client.get_collection(COLLECTION_NAME)
+    print(f"\nPopulation complete!")
+    print(f"  Collection: {COLLECTION_NAME}")
+    print(f"  Total vectors: {collection_info.vectors_count}")
+    print(f"  Status: {collection_info.status}")
 
 if __name__ == "__main__":
     main()

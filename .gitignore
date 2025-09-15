@@ -4,3 +4,4 @@ filtered_products_qdrant.json
 final_data_qdrant.json
 products_5.json
 qdrant_storage
+final_data_neo4j.json
