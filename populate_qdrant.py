@@ -26,26 +26,25 @@ def load_product_data(file_path: str) -> pd.DataFrame:
         print(f"Error loading data: {e}")
         sys.exit(1)
 
-def preprocess_products(df: pd.DataFrame) -> pd.DataFrame:
+def create_embedding_text(row):
 
-    def create_embedding_text(row):
-        """Concatenate non-null text fields for embedding."""
-        parts = []
-        
-        # Add name if exists
-        if pd.notna(row.get('name')) and str(row['name']).strip():
-            parts.append(str(row['name']).strip())
-        
-        # Add short_description if exists
-        if pd.notna(row.get('short_description')) and str(row['short_description']).strip():
-            parts.append(str(row['short_description']).strip())
-        
-        # Add description if exists
-        if pd.notna(row.get('description')) and str(row['description']).strip():
-            parts.append(str(row['description']).strip())
-        
-        # Join with space separator
-        return ' '.join(parts) if parts else ''
+    weights = {
+        'name': 3,              
+        'short_description': 1,  
+        'description': 1        
+    }
+    parts = []
+    
+    for field, weight in weights.items():
+        if field in row and pd.notna(row.get(field)):
+            field_value = str(row[field]).strip()
+            
+            if field_value:
+                parts.extend([field_value] * weight)
+    
+    return ' '.join(parts) if parts else ''
+
+def preprocess_products(df):
     
     df['text_for_embedding'] = df.apply(create_embedding_text, axis=1)
     
@@ -62,7 +61,7 @@ def preprocess_products(df: pd.DataFrame) -> pd.DataFrame:
 
 def generate_embeddings(texts: List[str], model: SentenceTransformer) -> List[List[float]]:
 
-    print(f"Generating embeddings for {len(texts)} products...")
+    print(f"Generating embeddings for {len(texts)} products")
     embeddings = model.encode(
         texts,
         batch_size=32,
@@ -72,59 +71,108 @@ def generate_embeddings(texts: List[str], model: SentenceTransformer) -> List[Li
     return embeddings.tolist()
 
 def initialize_qdrant_collection(client: QdrantClient, collection_name: str, vector_size: int):
-
     try:
         # Check if collection exists
         collections = client.get_collections().collections
         exists = any(col.name == collection_name for col in collections)
         
         if exists:
-            print(f"Collection '{collection_name}' exists. Deleting...")
-            client.delete_collection(collection_name)
-            print(f"✓ Deleted existing collection '{collection_name}'")
-        
-        # Create new collection
-        client.recreate_collection(
-            collection_name=collection_name,
-            vectors_config=VectorParams(
-                size=vector_size,
-                distance=Distance.COSINE
+            # Get collection info
+            collection_info = client.get_collection(collection_name)
+            existing_count = collection_info.vectors_count
+
+            print(f"\nCollection '{collection_name}' already exists")
+
+            print("type 1 to delete existing collection and create new one")
+            print("type 2 to keep existing collection and do nothing to the current collection")
+    
+            choice = input().strip()
+
+            if choice == '1':
+                
+                print(f"Deleting collection '{collection_name}'")
+                client.delete_collection(collection_name)
+                print(f"Deleted existing collection '{collection_name}'")
+                
+                # Create new collection
+                client.recreate_collection(
+                    collection_name=collection_name,
+                    vectors_config=VectorParams(
+                        size=vector_size,
+                        distance=Distance.COSINE
+                    )
+                )
+                print(f"Created new collection '{collection_name}' with vector size {vector_size}")
+                return True
+            
+            elif choice == '2':
+                # Check vector size compatibility
+                existing_vector_size = collection_info.config.params.vectors.size
+                if existing_vector_size != vector_size:
+                    print(f"Error: Vector size mismatch")
+                    print(f"Existing: {existing_vector_size}, Required: {vector_size}")
+                    sys.exit(1)
+
+                print(f"Using existing collection")
+                
+                return False
+            
+        else:
+            # Collection doesn't exist, create new one
+            client.create_collection(
+                collection_name=collection_name,
+                vectors_config=VectorParams(
+                    size=vector_size,
+                    distance=Distance.COSINE
+                )
             )
-        )
-        print(f"✓ Created collection '{collection_name}' with vector size {vector_size}")
+            print(f"Created new collection '{collection_name}' with vector size {vector_size}")
+            return True
         
     except Exception as e:
-        print(f"✗ Error initializing collection: {e}")
+        print(f"Error initializing collection: {e}")
         sys.exit(1)
 
 def upload_to_qdrant(
     client: QdrantClient,
     collection_name: str,
     df: pd.DataFrame,
-    embeddings: List[List[float]]
+    embeddings: List[List[float]],
+    is_new_collection: bool = True  
 ):
-
     points = []
     
+    # Get the starting ID for new points if appending to existing collection
+    start_id = 0
+    if not is_new_collection:
+        try:
+            collection_info = client.get_collection(collection_name)
+            start_id = collection_info.vectors_count
+            print(f"  Starting new vector IDs from: {start_id}")
+        except:
+            start_id = 0
+    
     for idx, (_, row) in enumerate(df.iterrows()):
-        # Create payload with product_id
+        # Create payload with product_id and name
         payload = {
             "product_id": str(row.get('id', f'unknown_{idx}'))
         }
         
-        # Optionally add other metadata
         if 'name' in row and pd.notna(row['name']):
             payload['name'] = str(row['name'])
+        else:
+            payload['name'] = row.get('text_for_embedding', '')[:200]
         
-        # Create point
+        if 'short_description' in row and pd.notna(row['short_description']):
+            payload['short_description'] = str(row['short_description'])[:500]
+        
         point = PointStruct(
-            id=idx,
+            id=start_id + idx,
             vector=embeddings[idx],
             payload=payload
         )
         points.append(point)
     
-    # Upload in batches
     batch_size = 100
     total_points = len(points)
     
@@ -137,7 +185,7 @@ def upload_to_qdrant(
             points=batch
         )
     
-    print(f"Successfully uploaded {total_points} vectors to collection '{collection_name}'")
+    print(f"Successfully uploaded vectors")
 
 def main():
     # Configuration
@@ -145,7 +193,7 @@ def main():
     QDRANT_PORT = 6334
     COLLECTION_NAME = "products"
     MODEL_NAME = "all-MiniLM-L6-v2"
-    VECTOR_SIZE = 384  # Size for all-MiniLM-L6-v2
+    VECTOR_SIZE = 384 
     DATA_FILE = "final_data_qdrant.json"
     
     # Initialize sentence transformer
@@ -156,7 +204,7 @@ def main():
         client = QdrantClient(
             host=QDRANT_HOST,
             port=QDRANT_PORT,
-            timeout=30
+            timeout=10
         )
         # Test connection
         client.get_collections()
@@ -170,21 +218,20 @@ def main():
     df = preprocess_products(df)
     
     # Initialize collection
-    initialize_qdrant_collection(client, COLLECTION_NAME, VECTOR_SIZE)
+    is_new_collection = initialize_qdrant_collection(client, COLLECTION_NAME, VECTOR_SIZE)
     
     # Generate embeddings
     texts = df['text_for_embedding'].tolist()
     embeddings = generate_embeddings(texts, model)
     
     # Upload to Qdrant
-    upload_to_qdrant(client, COLLECTION_NAME, df, embeddings)
+    upload_to_qdrant(client, COLLECTION_NAME, df, embeddings, is_new_collection)
     
-    # Verify upload
-    collection_info = client.get_collection(COLLECTION_NAME)
-    print(f"\nPopulation complete!")
-    print(f"  Collection: {COLLECTION_NAME}")
-    print(f"  Total vectors: {collection_info.vectors_count}")
-    print(f"  Status: {collection_info.status}")
+    # # to check some stats
+    # collection_info = client.get_collection(COLLECTION_NAME)
+    # print(f"\nPopulation complete!")
+    # print(f"  Collection: {COLLECTION_NAME}")
+    # print(f"  Total vectors: {collection_info.vectors_count}")
 
 if __name__ == "__main__":
     main()

@@ -1,0 +1,437 @@
+[
+  {
+    "id": "c14dd2040a4b92e7fc3291d870970f41",
+    "name": "Infineon CY7C1412KV18-250BZXC Parallel Memory",
+    "short_description": "",
+    "filterAttributes": [
+      {
+        "key": "Brand",
+        "value": "Infineon"
+      },
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "miscAttributes": [
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "configAttributes": [],
+    "keyAttributes": [
+      {
+        "key": "category code",
+        "value": "32101622"
+      },
+      {
+        "key": "Qualification",
+        "value": "Commercial"
+      },
+      {
+        "key": "Density [MBit]",
+        "value": "36"
+      },
+      {
+        "key": "Interfaces",
+        "value": "Parallel"
+      },
+      {
+        "key": "Operating Voltage min [V]",
+        "value": "1.7"
+      },
+      {
+        "key": "Operating Voltage max [V]",
+        "value": "1.9"
+      },
+      {
+        "key": "Family",
+        "value": "QDR-II"
+      },
+      {
+        "key": "Infineon Package name",
+        "value": "PG-BGA-165"
+      },
+      {
+        "key": "Operating Temperature max [°C]",
+        "value": "70.0"
+      }
+    ]
+  },
+  {
+    "id": "4ffeb8820d9f4f46351b022a1898a9d4",
+    "name": "Modular Cleanroom Ceiling Panels",
+    "short_description": "Walkable, Serviceable ceiling Concealed suspension Interior flush surface Flexible to make cutout at site for lighting, Hepa filter etc.",
+    "filterAttributes": [
+      {
+        "key": "Brand",
+        "value": "Generic"
+      },
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "miscAttributes": [
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "configAttributes": [],
+    "keyAttributes": [
+      {
+        "key": "category code",
+        "value": "56111600"
+      },
+      {
+        "key": "Mode_of_Purchase",
+        "value": "Buy"
+      }
+    ]
+  },
+  {
+    "id": "4bb4f22efbe1a8e2990a599d6d4c5291",
+    "name": "Measuring Cylinders, with interchangeable Polyethelene stopper, Class 'B' DIN 12685 100",
+    "short_description": "",
+    "filterAttributes": [
+      {
+        "key": "Brand",
+        "value": "Generic"
+      },
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "miscAttributes": [
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "configAttributes": [
+      {
+        "key": "Nominal Capacity ml",
+        "value": "100"
+      }
+    ],
+    "keyAttributes": [
+      {
+        "key": "category code",
+        "value": "41121805"
+      },
+      {
+        "key": "Mode_of_Purchase",
+        "value": "Buy"
+      },
+      {
+        "key": "Sub. DIV. ml",
+        "value": "1.0"
+      },
+      {
+        "key": "Tolerance",
+        "value": "1.0"
+      }
+    ]
+  },
+  {
+    "id": "731b34a0d6bd1a03da568583422973f5",
+    "name": "S08 Pneumatic Rod Seals 800.00 S088000801 RTB-249",
+    "short_description": "Pneumatic Cylinders.Pneumatic Valves.Short-stroke cylinders. Dry and oil-free air. Assembly on one-piece piston.Short assembled length.Minimal break-out and dynamic slide friction, no stick-slip, steady movement at low velocities.Low wear.High extrusion & temperature resistance (as per material selected).Easy installation & Smallest space groove. Sealing Ring : Carbon Filled PTFE.O Ring : Nitrile Rubber 70/75 Shore A.: FKM Rubber 70/75 Shore A. Temperature Range : -30° C to + 100° C (NBR) : -40° C to + 220° C (FKM)Pressure : 16 BarSpeed : 4.0 m/s Static : 1.6 µmRaDynamic : 0.4 µmRa",
+    "filterAttributes": [
+      {
+        "key": "Brand",
+        "value": "Generic"
+      },
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "miscAttributes": [
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "configAttributes": [
+      {
+        "key": "Inner Diameter (ID)",
+        "value": "800.00"
+      },
+      {
+        "key": "Model",
+        "value": "S088000801"
+      },
+      {
+        "key": "Mould No",
+        "value": "RTB-249"
+      }
+    ],
+    "keyAttributes": [
+      {
+        "key": "category code",
+        "value": "40172800"
+      },
+      {
+        "key": "Mode_of_Purchase",
+        "value": "Buy"
+      },
+      {
+        "key": "Material",
+        "value": "NBR/BFT"
+      },
+      {
+        "key": "Outer Diameter (OD)",
+        "value": "827.3"
+      },
+      {
+        "key": "Thickness(mm)",
+        "value": "9.50"
+      }
+    ]
+  },
+  {
+    "id": "e0128b7829d4b67cab947ed3a70716df",
+    "name": "Agilent Pursuit XRs 100Å C18, 3.0 x 150 mm, 5 µm",
+    "short_description": "Features : Wide range of common particle sizes and phase chemistries, including USP L1, USP L7, and USP L11Available in many dimensions, including preparative HPLC columnsIncludes both traditional (Pursuit) and high carbon load (Pursuit XRS) bondings.",
+    "filterAttributes": [
+      {
+        "key": "Brand",
+        "value": "Agilent"
+      },
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "miscAttributes": [
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "configAttributes": [],
+    "keyAttributes": [
+      {
+        "key": "category code",
+        "value": "41115711"
+      },
+      {
+        "key": "Mode_of_Purchase",
+        "value": "Buy"
+      },
+      {
+        "key": "Model No",
+        "value": "A6000150X030"
+      },
+      {
+        "key": "Unit",
+        "value": "1 Each"
+      },
+      {
+        "key": "Inner Diameter",
+        "value": "3 mm"
+      },
+      {
+        "key": "Length",
+        "value": "150 mm"
+      },
+      {
+        "key": "Particle Size",
+        "value": "5 µm"
+      }
+    ]
+  },
+  {
+    "id": "ad80d2d39b06dc4dd4946ad7089d3adb",
+    "name": "Humidin Axial Flow Fan - Fire Rated",
+    "short_description": "",
+    "filterAttributes": [
+      {
+        "key": "Brand",
+        "value": "Humidin"
+      },
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "miscAttributes": [
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "configAttributes": [],
+    "keyAttributes": [
+      {
+        "key": "category code",
+        "value": "40101604"
+      },
+      {
+        "key": "Mode_of_Purchase",
+        "value": "Buy"
+      }
+    ]
+  },
+  {
+    "id": "f3e079d3dd5c6fb1c4b809bd6f7515bb",
+    "name": "Neoprene gloves sensuous",
+    "short_description": "",
+    "filterAttributes": [
+      {
+        "key": "Brand",
+        "value": "Generic"
+      },
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "miscAttributes": [
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "configAttributes": [],
+    "keyAttributes": [
+      {
+        "key": "category code",
+        "value": "46181541"
+      },
+      {
+        "key": "Mode_of_Purchase",
+        "value": "Buy"
+      }
+    ]
+  },
+  {
+    "id": "5fc621cd33a9bc406a8ad7af30fed15d",
+    "name": "S11 Pneumatic Cushion Seals 82.55 S11082L501 PUD-1194",
+    "short_description": "",
+    "filterAttributes": [
+      {
+        "key": "Brand",
+        "value": "Generic"
+      },
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "miscAttributes": [
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "configAttributes": [
+      {
+        "key": "Inner Diameter (ID)",
+        "value": "82.55"
+      },
+      {
+        "key": "Model",
+        "value": "S11082L501"
+      },
+      {
+        "key": "Mould No",
+        "value": "PUD-1194"
+      }
+    ],
+    "keyAttributes": [
+      {
+        "key": "category code",
+        "value": "40172800"
+      },
+      {
+        "key": "Mode_of_Purchase",
+        "value": "Buy"
+      },
+      {
+        "key": "Material",
+        "value": "PU"
+      },
+      {
+        "key": "Outer Diameter (OD)",
+        "value": "98.83"
+      },
+      {
+        "key": "Thickness(mm)",
+        "value": "5.60"
+      }
+    ]
+  },
+  {
+    "id": "4f364d11d40a88e15b6184f9880689c8",
+    "name": "Collin Uterine Curettes 30cm",
+    "short_description": "",
+    "filterAttributes": [
+      {
+        "key": "Brand",
+        "value": "GENERIC"
+      },
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "miscAttributes": [
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "configAttributes": [],
+    "keyAttributes": [
+      {
+        "key": "category code",
+        "value": "42295100"
+      },
+      {
+        "key": "Model",
+        "value": "# LM 26-6362-30"
+      }
+    ]
+  },
+  {
+    "id": "bce241b1a81d29c31826976c091a0ecc",
+    "name": "String Mop Set",
+    "short_description": "",
+    "filterAttributes": [
+      {
+        "key": "Brand",
+        "value": "Generic"
+      },
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "miscAttributes": [
+      {
+        "key": "Condition",
+        "value": "New"
+      }
+    ],
+    "configAttributes": [],
+    "keyAttributes": [
+      {
+        "key": "category code",
+        "value": "47131600"
+      },
+      {
+        "key": "Material",
+        "value": " Plastic"
+      },
+      {
+        "key": "Application",
+        "value": " Industry and Home"
+      }
+    ]
+  }
+]

@@ -587,17 +587,16 @@ from neo4j import GraphDatabase
 from typing import List, Dict
 
 class ProductSearchSystem:
-    def __init__(self, uri: str, user: str, password: str):
+
+    def __init__(self, uri, user, password):
 
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
         self.verify_connection()
         
     def close(self):
-        """Close the database connection"""
         self.driver.close()
         
     def verify_connection(self):
-        """Verify database connection and that data exists"""
         try:
             with self.driver.session() as session:
                 # Check if products exist
@@ -642,9 +641,9 @@ class ProductSearchSystem:
             FOR (p:Product)
             ON EACH [p.name, p.short_description]
         """)
-        print("✓ Full-text search index created")
+        print("Full-text search index created")
     
-    def search_products(self, query_string: str, limit: int = 10) -> List[Dict]:
+    def search_products(self, query_string, limit=10):
 
         if not query_string.strip():
             return []
@@ -695,7 +694,7 @@ class ProductSearchSystem:
             
             return sorted_results
     
-    def _search_fulltext(self, session, query: str, limit: int) -> List[Dict]:
+    def _search_fulltext(self, session, query, limit):
 
         products = []
         
@@ -745,7 +744,7 @@ class ProductSearchSystem:
         
         return products[:limit]
     
-    def _search_by_attributes(self, session, query: str, limit: int) -> List[Dict]:
+    def _search_by_attributes(self, session, query, limit):
 
         # Search for products that have attributes matching the query
         cypher_query = """
@@ -783,7 +782,7 @@ class ProductSearchSystem:
             print(f"Attribute search error: {e}")
             return []
     
-    def _search_contains(self, session, query: str, limit: int) -> List[Dict]:
+    def _search_contains(self, session, query, limit):
 
         cypher_query = """
             MATCH (p:Product)
@@ -819,7 +818,7 @@ class ProductSearchSystem:
             print(f"Contains search error: {e}")
             return []
     
-    def get_product_details(self, product_id: str) -> Dict:
+    def get_product_details(self, product_id):
 
         with self.driver.session() as session:
             cypher_query = """
@@ -844,7 +843,7 @@ class ProductSearchSystem:
                 }
             return None
     
-    def format_search_results(self, products: List[dict], show_attributes: bool = False) -> str:
+    def format_search_results(self, products, show_attributes=False):
 
         if not products:
             return "No products found."
@@ -892,16 +891,16 @@ class ProductSearchSystem:
                 
                 # Check for exit command
                 if query.lower() == 'exit':
-                    print("\nExiting search system. Goodbye!")
+                    print("\nExiting search system.")
                     break
                 
                 # Skip empty queries
                 if not query:
-                    print("Please enter a search query.")
+                    print("Enter a search query.")
                     continue
                 
                 # Perform search
-                print(f"\nSearching for: '{query}'...")
+                print(f"\nSearching for: '{query}'")
                 products = self.search_products(query)
                 
                 # Display results
@@ -927,8 +926,7 @@ class ProductSearchSystem:
                 print(f"Error during search: {e}")
 
 def main():
-    # Get Neo4j connection details from environment variables
-    # Default to localhost for running outside Docker, or neo4j hostname for inside Docker
+
     neo4j_uri = os.environ.get('NEO4J_URI', 'bolt://localhost:7687')
     neo4j_user = os.environ.get('NEO4J_USER', 'neo4j')
     neo4j_password = os.environ.get('NEO4J_PASSWORD', 'password')

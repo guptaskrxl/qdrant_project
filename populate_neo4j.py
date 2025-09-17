@@ -236,10 +236,7 @@
 # if __name__ == "__main__":
 #     main()
 
-#!/usr/bin/env python3
-"""
-populate_neo4j.py - Script to populate Neo4j database with product data from JSON file
-"""
+##################################################################
 
 import json
 import os
@@ -249,31 +246,46 @@ from typing import Dict, List, Any
 
 
 class Neo4jProductLoader:
-    """Class to handle loading product data into Neo4j database"""
     
     def __init__(self, uri: str, user: str, password: str):
-        """
-        Initialize connection to Neo4j database
-        
-        Args:
-            uri: Neo4j connection URI
-            user: Neo4j username
-            password: Neo4j password
-        """
+
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
         
     def close(self):
-        """Close the database connection"""
         self.driver.close()
         
-    def clear_database(self):
-        """Clear all existing data from the database"""
+    def check_existing_data(self):
         with self.driver.session() as session:
-            session.run("MATCH (n) DETACH DELETE n")
-            print("✓ Database cleared")
+            result = session.run("MATCH (n) RETURN count(n) as count LIMIT 1")
+            count = result.single()['count']
+            return count > 0
+        
+    def clear_database_with_confirmation(self):
+        has_data = self.check_existing_data()
+        
+        if has_data:
+            with self.driver.session() as session:
+                # Get counts for more detailed information
+                product_result = session.run("MATCH (p:Product) RETURN count(p) as count")
+                product_count = product_result.single()['count']
+                
+                attr_result = session.run("MATCH (a:Attribute) RETURN count(a) as count")
+                attr_count = attr_result.single()['count']
+                
+                print("\nDatabase contains existing data")
+                
+                while True:
+                    response = input("\nClear the existing database? (y/n): ").strip().lower()
+                    
+                    if response == 'y' or response == 'yes':
+                        session.run("MATCH (n) DETACH DELETE n")
+                        print("Database cleared")
+                        return True
+                    elif response == 'n' or response == 'no':
+                        print("Exiting")
+                        return False
             
     def create_indexes(self):
-        """Create necessary indexes for the database"""
         with self.driver.session() as session:
             # Create unique constraint on Product id
             session.run("""
@@ -308,16 +320,10 @@ class Neo4jProductLoader:
                 FOR (p:Product) ON (p.name)
             """)
             
-            print("✓ Indexes and constraints created")
+            print("Indexes and constraints created")
             
-    def create_product_node(self, tx, product_data: Dict[str, Any]):
-        """
-        Create a Product node in the database
-        
-        Args:
-            tx: Neo4j transaction
-            product_data: Product data dictionary
-        """
+    def create_product_node(self, tx, product_data):
+
         # Handle empty short_description
         short_desc = product_data.get('short_description', '')
         if not short_desc:
@@ -335,23 +341,15 @@ class Neo4jProductLoader:
                name=product_data['name'],
                short_description=short_desc)
         
-    def create_attribute_and_relationship(self, tx, product_id: str, 
-                                         attribute_type: str, 
-                                         attributes: List[Dict[str, str]]):
-        """
-        Create Attribute nodes and relationships to Product
-        
-        Args:
-            tx: Neo4j transaction
-            product_id: Product ID
-            attribute_type: Type of attribute (filter, misc, config, key)
-            attributes: List of attribute dictionaries
-        """
-        if not attributes:  # Handle empty attribute lists
+    def create_attribute_and_relationship(self, tx, product_id, 
+                                         attribute_type, 
+                                         attributes):
+
+        if not attributes: 
             return
             
         for attr in attributes:
-            if not attr.get('key') or not attr.get('value'):  # Skip invalid attributes
+            if not attr.get('key') or not attr.get('value'):  
                 continue
                 
             query = """
@@ -367,48 +365,12 @@ class Neo4jProductLoader:
                    value=attr['value'],
                    type=attribute_type)
     
-    def load_product(self, product_data: Dict[str, Any]):
-        """
-        Load a single product with all its attributes into Neo4j
-        
-        Args:
-            product_data: Product data dictionary
-        """
-        with self.driver.session() as session:
-            # Use transaction for atomicity
-            with session.begin_transaction() as tx:
-                # Create Product node
-                self.create_product_node(tx, product_data)
-                
-                # Create Attribute nodes and relationships for each attribute type
-                attribute_types = [
-                    ('filterAttributes', 'filter'),
-                    ('miscAttributes', 'misc'),
-                    ('configAttributes', 'config'),
-                    ('keyAttributes', 'key')
-                ]
-                
-                for attr_field, attr_type in attribute_types:
-                    attributes = product_data.get(attr_field, [])
-                    self.create_attribute_and_relationship(
-                        tx, product_data['id'], attr_type, attributes
-                    )
-                
-                # Commit transaction
-                tx.commit()
-    
-    def load_products_from_json(self, json_file_path: str):
-        """
-        Load all products from JSON file into Neo4j
-        
-        Args:
-            json_file_path: Path to JSON file containing product data
-        """
+    def load_products_from_json(self, json_file_path):
         try:
             with open(json_file_path, 'r', encoding='utf-8') as f:
                 products = json.load(f)
                 
-            print(f"Loading {len(products)} products into Neo4j...")
+            print(f"Loading {len(products)} products into Neo4j")
             
             # Process products in batches for better performance
             batch_size = 100
@@ -441,8 +403,6 @@ class Neo4jProductLoader:
                 processed = min(i + batch_size, len(products))
                 print(f"  Processed {processed}/{len(products)} products...")
             
-            print(f"✓ Successfully loaded {len(products)} products")
-            
         except FileNotFoundError:
             print(f"Error: File '{json_file_path}' not found")
             sys.exit(1)
@@ -453,57 +413,42 @@ class Neo4jProductLoader:
             print(f"Error loading products: {e}")
             sys.exit(1)
 
-
 def main():
-    """Main function to orchestrate the data loading process"""
-    
-    # Get Neo4j connection details from environment variables
-    # Default to localhost for running outside Docker, or neo4j hostname for inside Docker
+
     neo4j_uri = os.environ.get('NEO4J_URI', 'bolt://localhost:7687')
     neo4j_user = os.environ.get('NEO4J_USER', 'neo4j')
     neo4j_password = os.environ.get('NEO4J_PASSWORD', 'password')
     
-    # JSON file path
     json_file = 'final_data_neo4j.json'
-    
-    print("=" * 50)
-    print("Neo4j Product Data Loader")
-    print("=" * 50)
     
     # Initialize loader
     loader = Neo4jProductLoader(neo4j_uri, neo4j_user, neo4j_password)
     
     try:
-        # Clear existing data
-        print("Clearing existing data...")
-        loader.clear_database()
+        if not loader.clear_database_with_confirmation():
+            sys.exit(0)
         
         # Create indexes
-        print("Creating indexes and constraints...")
+        print("Creating indexes and constraints")
         loader.create_indexes()
         
         # Load products from JSON
-        print(f"Loading data from '{json_file}'...")
+        print(f"Loading data from '{json_file}'")
         loader.load_products_from_json(json_file)
         
         # Verify data loaded
         with loader.driver.session() as session:
             result = session.run("MATCH (p:Product) RETURN count(p) as count")
             count = result.single()['count']
-            print(f"\n✓ Database now contains {count} products")
-            
-            result = session.run("MATCH (a:Attribute) RETURN count(a) as count")
-            attr_count = result.single()['count']
-            print(f"✓ Database now contains {attr_count} unique attributes")
+            print(f"\nDatabase now contains {count} products")
         
-        print("\n✓ Data population completed successfully!")
+        print("\nData population complete\n")
         
     except Exception as e:
         print(f"\nError: {e}")
         sys.exit(1)
     finally:
         loader.close()
-
 
 if __name__ == "__main__":
     main()
