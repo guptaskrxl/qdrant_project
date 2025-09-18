@@ -17,7 +17,6 @@ class ProductSearchSystem:
     def verify_connection(self):
         try:
             with self.driver.session() as session:
-                # Check if products exist
                 result = session.run("MATCH (p:Product) RETURN count(p) as count")
                 count = result.single()['count']
                 
@@ -38,7 +37,7 @@ class ProductSearchSystem:
                 fulltext_exists = any('product_search' in str(idx) for idx in indexes)
                 
                 if not fulltext_exists:
-                    print("Warning: Full-text search index not found. Creating it now...")
+                    print("Warning: Full-text search index not found. Creating it now.")
                     self.create_search_index(session)
                     
         except Exception as e:
@@ -78,11 +77,10 @@ class ProductSearchSystem:
         
         return codes
     
-    def normalize_product_code(self, code: str) -> List[str]:
-        """
-        Generate variations of a product code for matching.
-        E.g., AIUR-06-102J -> [AIUR-06-102J, AIUR06102J, AIUR 06 102J]
-        """
+    def normalize_product_code(self, code):
+    
+        # Generate variations of a product code for matching.
+
         variations = [code]
         
         # Remove hyphens version
@@ -98,6 +96,7 @@ class ProductSearchSystem:
         return variations
     
     def tokenize_query(self, query):
+
         codes = self.extract_product_codes(query)
         
         # Create a modified query where codes are replaced with placeholders
@@ -192,8 +191,8 @@ class ProductSearchSystem:
             
             return sorted_results
     
-    def _search_by_codes(self, session, codes: List[str], limit: int):
-        """Search for products by product codes with variations."""
+    def _search_by_codes(self, session, codes, limit):
+
         all_results = []
         
         for code in codes:
@@ -239,7 +238,7 @@ class ProductSearchSystem:
         
         return all_results[:limit]
     
-    def _search_fulltext_enhanced(self, session, original_query: str, query_parts: Dict, limit: int):
+    def _search_fulltext_enhanced(self, session, original_query, query_parts, limit):
         """Enhanced full-text search with better handling of product codes."""
         products = []
         
@@ -296,7 +295,7 @@ class ProductSearchSystem:
         
         return products[:limit]
     
-    def _search_by_words(self, session, words: List[str], limit: int):
+    def _search_by_words(self, session, words, limit):
         """Search for products matching individual words."""
         if not words:
             return []
@@ -339,7 +338,7 @@ class ProductSearchSystem:
             print(f"Word search error: {e}")
             return []
     
-    def _search_attributes_enhanced(self, session, query_parts: Dict, limit: int):
+    def _search_attributes_enhanced(self, session, query_parts, limit):
         """Enhanced attribute search using individual words and codes."""
         search_terms = query_parts['words'] + query_parts['codes']
         
@@ -390,24 +389,22 @@ class ProductSearchSystem:
         if not products:
             return "No products found."
         
-        output = ["\n" + "=" * 80]
-        output.append(f"Found {len(products)} product(s):")
-        output.append("=" * 80)
+        output = []
         
         for i, product in enumerate(products, 1):
             output.append(f"\n{i}. Product ID: {product['id']}")
             output.append(f"   Name: {product['name']}")
             
-            desc = product['description']
-            if desc and len(desc) > 100:
-                desc = desc[:97] + "..."
-            if desc:
-                output.append(f"   Description: {desc}")
+            # desc = product['description']
+            # if desc and len(desc) > 100:
+            #     desc = desc[:97] + "..."
+            # if desc:
+            #     output.append(f"   Description: {desc}")
             
-            # Show which search methods found this product
-            if 'search_methods' in product:
-                methods = ', '.join(product['search_methods'])
-                output.append(f"   Found by: {methods}")
+            # # Show which search methods found this product
+            # if 'search_methods' in product:
+            #     methods = ', '.join(product['search_methods'])
+            #     output.append(f"   Found by: {methods}")
             
             # Show matched code if present
             if 'matched_code' in product:
@@ -422,8 +419,6 @@ class ProductSearchSystem:
                     output.append(f"     ... and {len(product['matched_attributes']) - 3} more attributes")
             
             output.append(f"   Relevance Score: {product.get('combined_score', product['score']):.3f}")
-        
-        output.append("=" * 80)
         
         return "\n".join(output)
     
@@ -447,20 +442,14 @@ class ProductSearchSystem:
                 
                 if products:
                     print("\nTop 10 Product IDs:")
-                    print("-" * 40)
-                    for i, product in enumerate(products[:10], 1):
-                        print(f"{i:2}. {product['id']}")
                     
                     print(self.format_search_results(products, show_attributes=True))
                 else:
                     print("No products found.")
                 
             except KeyboardInterrupt:
-                print("\n\nInterrupted by user.")
                 break
-            except EOFError:
-                print("\n\nEnd of input. Exiting.")
-                break
+            
             except Exception as e:
                 print(f"Error during search: {e}")
 
