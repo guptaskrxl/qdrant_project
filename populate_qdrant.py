@@ -7,7 +7,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
 from tqdm import tqdm
 
-def load_product_data(file_path: str) -> pd.DataFrame:
+def load_product_data(file_path):
 
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -59,7 +59,7 @@ def preprocess_products(df):
     print(f"Preprocessed {final_count} products for embedding")
     return df
 
-def generate_embeddings(texts: List[str], model: SentenceTransformer) -> List[List[float]]:
+def generate_embeddings(texts, model):
 
     print(f"Generating embeddings for {len(texts)} products")
     embeddings = model.encode(
@@ -70,7 +70,7 @@ def generate_embeddings(texts: List[str], model: SentenceTransformer) -> List[Li
     )
     return embeddings.tolist()
 
-def initialize_qdrant_collection(client: QdrantClient, collection_name: str, vector_size: int):
+def initialize_qdrant_collection(client, collection_name, vector_size):
     try:
         # Check if collection exists
         collections = client.get_collections().collections
@@ -79,7 +79,6 @@ def initialize_qdrant_collection(client: QdrantClient, collection_name: str, vec
         if exists:
             # Get collection info
             collection_info = client.get_collection(collection_name)
-            existing_count = collection_info.vectors_count
 
             print(f"\nCollection '{collection_name}' already exists")
 
@@ -133,13 +132,8 @@ def initialize_qdrant_collection(client: QdrantClient, collection_name: str, vec
         print(f"Error initializing collection: {e}")
         sys.exit(1)
 
-def upload_to_qdrant(
-    client: QdrantClient,
-    collection_name: str,
-    df: pd.DataFrame,
-    embeddings: List[List[float]],
-    is_new_collection: bool = True  
-):
+def upload_to_qdrant(client, collection_name, df, embeddings, is_new_collection):
+
     points = []
     
     # Get the starting ID for new points if appending to existing collection
@@ -176,7 +170,7 @@ def upload_to_qdrant(
     batch_size = 100
     total_points = len(points)
     
-    print(f"Uploading {total_points} vectors to Qdrant...")
+    print(f"Uploading {total_points} vectors to Qdrant")
     
     for i in tqdm(range(0, total_points, batch_size)):
         batch = points[i:i + batch_size]
