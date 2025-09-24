@@ -44,10 +44,10 @@ class Neo4jProductLoader:
                         print("Exiting without changes")
                         return False
         else:
-            print("Database is empty, proceeding...")
+            print("Database is empty")
             return True
     
-    def extract_product_codes(self, text: str) -> Set[str]:
+    def extract_product_codes(self, text):
         """Extract product codes from text."""
         if not text:
             return set()
@@ -84,7 +84,7 @@ class Neo4jProductLoader:
         
         return variations
     
-    def extract_search_terms(self, product_data: Dict[str, Any]) -> Set[str]:
+    def extract_search_terms(self, product_data):
         """Extract all searchable terms from a product including code variations."""
         search_terms = set()
         
@@ -271,7 +271,7 @@ class Neo4jProductLoader:
                 
                 # Progress indicator
                 processed = min(i + batch_size, len(products))
-                print(f"  Processed {processed}/{len(products)} products...")
+                print(f"  Processed {processed}/{len(products)} products")
             
             print(f"Successfully loaded {len(products)} products with pre-computed search terms")
             
@@ -292,20 +292,16 @@ def main():
     
     json_file = 'final_data_neo4j.json'
     
-    print("=" * 60)
-    print("Neo4j Product Loader with Pre-computed Search Terms")
-    print("=" * 60)
-    
     loader = Neo4jProductLoader(neo4j_uri, neo4j_user, neo4j_password)
     
     try:
         if not loader.clear_database_with_confirmation():
             sys.exit(0)
         
-        print("\nCreating indexes and constraints...")
+        print("\nCreating indexes and constraints")
         loader.create_indexes()
         
-        print(f"\nLoading data from '{json_file}'...")
+        print(f"\nLoading data from '{json_file}'")
         loader.load_products_from_json(json_file)
         
         # Verify data loaded
