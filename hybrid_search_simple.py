@@ -63,7 +63,7 @@ class SimpleHybridSearch:
         
         return terms
     
-    def search_neo4j(self, query, limit = 10):
+    def search_neo4j(self, query, limit):
 
         search_terms = self.normalize_search_input(query)
         terms_list = list(search_terms)
@@ -145,7 +145,7 @@ class SimpleHybridSearch:
         
         return neo4j_results
     
-    def search_qdrant(self, query, limit = 10):
+    def search_qdrant(self, query, limit):
 
         query_vector = self.model.encode(query).tolist()
         qdrant_results = {}
@@ -189,7 +189,7 @@ class SimpleHybridSearch:
         
         return scores_dict
     
-    def hybrid_search(self, query, neo4j_weight = 0.5, qdrant_weight = 0.5):
+    def hybrid_search(self, query, neo4j_weight, qdrant_weight):
 
         if not query.strip():
             return []

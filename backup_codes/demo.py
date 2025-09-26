@@ -57,8 +57,8 @@
 # import random
 
 # in_path = "final_data_qdrant.json"
-# out_path = "products_5.json"
-# k = 5
+# out_path = "products_10_qdrant.json"
+# k = 10
 
 # # Optional: reproducible sampling
 # # random.seed(42)
