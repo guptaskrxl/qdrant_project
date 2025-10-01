@@ -235,16 +235,19 @@ class HybridSearchSystem:
             neo4j_weight = 0.8
             qdrant_weight = 0.2
             print("  Query type: Product code detected - favoring exact match")
+
         elif analysis['is_descriptive']:
             # Long descriptive queries: favor Qdrant
             neo4j_weight = 0.3
             qdrant_weight = 0.7
             print("  Query type: Descriptive - favoring semantic search")
+
         elif analysis['has_attributes']:
             # Attribute-based: favor Neo4j
             neo4j_weight = 0.7
             qdrant_weight = 0.3
             print("  Query type: Attribute-based - favoring graph search")
+            
         else:
             # Balanced approach
             neo4j_weight = 0.5

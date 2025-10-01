@@ -260,8 +260,8 @@ class SimpleHybridSearch:
     
     def run_interactive_search(self):
         
-        neo4j_weight = 0.5
-        qdrant_weight = 0.5
+        neo4j_weight = 0.6
+        qdrant_weight = 0.4
         
         while True:
             try:

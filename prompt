@@ -1,0 +1,53 @@
+i want to perform the task of OCR extraction to find detail regarding the products using claude LLM. the workflow should be like below: 
+1. the user inputs the pdf or image 
+2. the document is scanned which usually will be machine tools catalog 
+3. identify and list all the product names along with if available description, short description and attributes (its upto your logic on how to decide what is description and whats short description) The product names are typically for industrial machines and tools and often include a model number at the end. i only want to fetch type of attributes related to: measurements brand of the product condition of the product (new, old or if not mentioned then leave blank)
+4. Return the result as a JSON object with a self generated unique product_id, name, description, short_description, attributes which can be a dictionary. 
+5. use the fetched json to populate the neo4j database and qdrant databse whose code i have attached. i dont want the code for the search i already have that
+
+
+
+you are an expert data scientist. read and understand thoroughly the codes for neo4j and qdrant population. i have also attached the code for ocr.py which will extract the relevant information from a doc and then populate the neo4j and qdrant. the problem that i am facing is that i am not able to directly send the data fetched from ocr.py to populate_neo4j_latest.py and populate_qdrant.py. i have done this in ocr.py:
+
+from populate_neo4j_latest import populate_from_data as populate_from_ocr_data
+
+from populate_qdrant import populate_from_data as populate_from_ocr_data
+
+def populate_databases(self, neo4j_data, qdrant_data):
+
+ print("\n" + "="*60)
+
+print("POPULATING NEO4J DATABASE")
+
+print("="*60)
+
+try:
+
+ populate_from_ocr_data(neo4j_data)
+
+except Exception as e:
+
+print(f"Error populating Neo4j: {e}")
+
+return False
+
+print("\n" + "="*60)
+
+print("POPULATING QDRANT DATABASE")
+
+print("="*60)
+
+try:
+
+ populate_from_ocr_data(qdrant_data)
+
+except Exception as e:
+
+print(f"Error populating Qdrant: {e}")
+
+return False
+
+return True
+
+I have called these function but they are not present in my populate_neo4j_latest.py and populate_qdrant.py code.. i want you to modify if necessary codes from any of these files such that i can directly populate qdrant and neo4j from ocr.py. also make the code for populate_qdrant.py modular using class. also if necessary make all the codes more modular.
+
