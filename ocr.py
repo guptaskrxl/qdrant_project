@@ -10,11 +10,7 @@ from populate_neo4j_latest import populate_from_data as populate_neo4j_from_ocr_
 from populate_qdrant import populate_from_data as populate_qdrant_from_ocr_data
 
 class ProductCatalogExtractor:
-    """
-    Extracts product information from PDF/image catalogs using Claude Vision API
-    and populates Neo4j and Qdrant databases.
-    """
-    
+
     def __init__(self, api_key: str = None):
         """Initialize the extractor with Anthropic API key."""
         self.api_key = api_key or os.environ.get('ANTHROPIC_API_KEY')
@@ -23,14 +19,12 @@ class ProductCatalogExtractor:
         
         self.client = anthropic.Anthropic(api_key=self.api_key)
         
-    def read_file_as_base64(self, file_path: str) -> tuple:
-        """Read file and convert to base64."""
+    def read_file_as_base64(self, file_path):
         path = Path(file_path)
         
         if not path.exists():
             raise FileNotFoundError(f"File not found: {file_path}")
         
-        # Determine media type
         extension = path.suffix.lower()
         media_type_map = {
             '.pdf': 'application/pdf',
@@ -45,28 +39,17 @@ class ProductCatalogExtractor:
         if not media_type:
             raise ValueError(f"Unsupported file type: {extension}")
         
-        # Read and encode file
         with open(file_path, 'rb') as f:
             file_data = base64.standard_b64encode(f.read()).decode('utf-8')
         
         return file_data, media_type
     
-    def extract_products_from_document(self, file_path: str) -> Dict[str, Any]:
-        """
-        Extract product information from a catalog document using Claude Vision API.
-        
-        Args:
-            file_path: Path to PDF or image file
-            
-        Returns:
-            Dictionary containing extracted products
-        """
+    def extract_products_from_document(self, file_path):
+
         print(f"Processing document: {file_path}")
         
-        # Read and encode file
         file_data, media_type = self.read_file_as_base64(file_path)
         
-        # Prepare the prompt
         prompt = """From the attached machine tools catalog, identify and list all the product names along with description, short_description and attributes if available.  
 
 INSTRUCTIONS:
@@ -76,23 +59,24 @@ INSTRUCTIONS:
    - name: The complete product name including model number
    - description: Detailed information about the product, features, applications, and technical details (2-3 sentences minimum)
    - short_description: A brief one-line summary of what the product is (1 sentence)
-   - attributes: A dictionary containing:
-     * brand: The manufacturer/brand name
-     * condition: "New" (or leave empty if not mentioned)
-     * measurements: A nested dictionary with relevant dimensions like:
-       - span, radius, length, width, height, capacity, load, etc. (include units)
-       - Only include measurements that are explicitly stated in the document
+   - attributes: A flat dictionary containing ALL attributes at the same level:
+     * Extract EVERY attribute mentioned in the document for this product
+     * Common attributes include: brand, condition, manufacturer, model, type, category, material, color, weight, voltage, power, speed, frequency, etc.
+     * Measurement/dimensional attributes: span, radius, length, width, height, depth, diameter, capacity, load, payload, lifting_height, working_radius, boom_length, rope_length, cable_length, rail_gauge, etc.
+     * Only include attributes that are explicitly stated in the document
+     * IMPORTANT: Do not limit to the examples above - extract ANY and ALL attributes present for each product
 
 3. Logic for descriptions:
    - short_description: Brief, concise overview (what it is)
    - description: Detailed explanation including features, standards, applications, technical specifications
 
-4. For measurements, extract ALL dimensional data available including:
-   - Physical dimensions (span, radius, height, etc.)
-   - Capacity/Load specifications (safe working load, payload, etc.)
-   - Ranges (e.g., "3 mtrs. to 30 mtrs." or "500 kgs. to 20,000 kgs.")
+4. For attributes:
+   - Extract EVERY piece of information mentioned about the product as a separate attribute
+   - Always include units where applicable (e.g., "5 tons", "15 meters", "220V", "50 Hz")
+   - For ranges, include as shown (e.g., "3 mtrs. to 30 mtrs." or "500 kgs. to 20,000 kgs.")
+   - Use clear, descriptive attribute names (e.g., "safe_working_load" not just "swl")
 
-Return ONLY a valid JSON object with this structure:
+Return ONLY a valid JSON object with this structure (this is just an example - include ALL attributes found):
 {
   "products": [
     {
@@ -103,16 +87,23 @@ Return ONLY a valid JSON object with this structure:
       "attributes": {
         "brand": "Brand Name",
         "condition": "New",
-        "measurements": {
-          "dimension_name": "value with units",
-          "capacity": "value with units"
-        }
+        "capacity": "5 tons",
+        "span": "15 meters",
+        "height": "8 meters",
+        "voltage": "220V",
+        "frequency": "50 Hz",
+        "any_other_attribute_found": "value with units"
       }
     }
   ]
 }
 
-IMPORTANT: Return ONLY the JSON object, no additional text or markdown formatting."""
+CRITICAL POINTS:
+- All attributes should be at the same level in the attributes dictionary (flat structure)
+- Do NOT nest measurements in a separate sub-dictionary
+- Extract EVERY attribute mentioned - do not limit to common ones
+- If an attribute is mentioned multiple times with different values (like a range), include it appropriately
+- Return ONLY the JSON object, no additional text or markdown formatting"""
 
         # Call Claude API with vision
         try:
@@ -170,11 +161,8 @@ IMPORTANT: Return ONLY the JSON object, no additional text or markdown formattin
             print(f"Error during extraction: {e}")
             raise
     
-    def transform_for_neo4j(self, extracted_data: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """
-        Transform extracted data to Neo4j format.
-        Neo4j expects: id, name, short_description, and separate attribute arrays.
-        """
+    def transform_for_neo4j(self, extracted_data):
+
         neo4j_products = []
         
         for product in extracted_data.get('products', []):
@@ -184,39 +172,24 @@ IMPORTANT: Return ONLY the JSON object, no additional text or markdown formattin
                 'short_description': product.get('short_description', '')
             }
             
-            # Transform attributes into separate arrays by type
+            attributes_list = []
             attributes = product.get('attributes', {})
             
-            # Filter attributes: brand, condition, measurements
-            filter_attrs = []
+            for key, value in attributes.items():
+                if value:  
+                    attributes_list.append({
+                        'key': key,
+                        'value': str(value)
+                    })
             
-            if 'brand' in attributes and attributes['brand']:
-                filter_attrs.append({'key': 'brand', 'value': attributes['brand']})
-            
-            if 'condition' in attributes and attributes['condition']:
-                filter_attrs.append({'key': 'condition', 'value': attributes['condition']})
-            
-            # Handle measurements
-            measurements = attributes.get('measurements', {})
-            if measurements:
-                for key, value in measurements.items():
-                    if value:
-                        filter_attrs.append({'key': key, 'value': str(value)})
-            
-            neo4j_product['filterAttributes'] = filter_attrs
-            neo4j_product['miscAttributes'] = []
-            neo4j_product['configAttributes'] = []
-            neo4j_product['keyAttributes'] = []
+            neo4j_product['attributes'] = attributes_list
             
             neo4j_products.append(neo4j_product)
         
         return neo4j_products
     
-    def transform_for_qdrant(self, extracted_data: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """
-        Transform extracted data to Qdrant format.
-        Qdrant expects: id, name, short_description, description.
-        """
+    def transform_for_qdrant(self, extracted_data):
+
         qdrant_products = []
         
         for product in extracted_data.get('products', []):
@@ -231,25 +204,22 @@ IMPORTANT: Return ONLY the JSON object, no additional text or markdown formattin
         
         return qdrant_products
     
-    def save_json(self, data: Any, filename: str):
+    def save_json(self, data, filename):
         """Save data to JSON file."""
         with open(filename, 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         print(f"Saved data to {filename}")
     
     def populate_databases(self, neo4j_data, qdrant_data):
-        print("\n" + "="*60)
-        print("POPULATING NEO4J DATABASE")
-        print("="*60)
+        
+        print("\nPOPULATING NEO4J DATABASE")
         try:
             populate_neo4j_from_ocr_data(neo4j_data)
         except Exception as e:
             print(f"Error populating Neo4j: {e}")
             return False
 
-        print("\n" + "="*60)
-        print("POPULATING QDRANT DATABASE")
-        print("="*60)
+        print("\nPOPULATING QDRANT DATABASE")
         try:
             populate_qdrant_from_ocr_data(qdrant_data)
         except Exception as e:
@@ -257,74 +227,40 @@ IMPORTANT: Return ONLY the JSON object, no additional text or markdown formattin
             return False
 
         return True
-
     
-    def process_catalog(self, file_path: str, populate_dbs: bool = True):
-        """
-        Complete workflow: Extract from catalog and populate databases.
+    def process_catalog(self, file_path):
         
-        Args:
-            file_path: Path to catalog PDF or image
-            populate_dbs: Whether to automatically populate databases (default: True)
-        """
-        print("\n" + "="*60)
-        print("PRODUCT CATALOG EXTRACTION WORKFLOW")
-        print("="*60 + "\n")
-        
-        # Step 1: Extract products from document
         print("Step 1: Extracting products from document...")
         extracted_data = self.extract_products_from_document(file_path)
         
-        # Step 2: Transform and save for Neo4j
-        print("\nStep 2: Transforming data for Neo4j...")
+        print("\nStep 2: Transforming data for Neo4j")
         neo4j_data = self.transform_for_neo4j(extracted_data)
         self.save_json(neo4j_data, 'final_data_neo4j.json')
         
-        # Step 3: Transform and save for Qdrant
-        print("\nStep 3: Transforming data for Qdrant...")
+        print("\nStep 3: Transforming data for Qdrant")
         qdrant_data = self.transform_for_qdrant(extracted_data)
         self.save_json(qdrant_data, 'final_data_qdrant.json')
         
-        # Step 4: Populate databases
-        if populate_dbs:
-            print("\nStep 4: Populating databases...")
-            success = self.populate_databases(neo4j_data, qdrant_data)
-            
-            if success:
-                print("\n" + "="*60)
-                print("WORKFLOW COMPLETED SUCCESSFULLY!")
-                print("="*60)
-            else:
-                print("\n" + "="*60)
-                print("WORKFLOW COMPLETED WITH ERRORS")
-                print("Data files created but database population failed")
-                print("="*60)
+        print("\nStep 4: Populating databases")
+        success = self.populate_databases(neo4j_data, qdrant_data)
+        
+        if success:
+            print("\nWORKFLOW COMPLETE")
         else:
-            print("\nSkipping database population (populate_dbs=False)")
-            print("\n" + "="*60)
-            print("EXTRACTION COMPLETED!")
-            print("JSON files created. Run populate scripts manually.")
-            print("="*60)
-
+            print("\nData files created but database population failed")
 
 def main():
 
     if len(sys.argv) < 2:
-        print("Usage: python ocr_extraction_workflow.py <path_to_catalog_file> [--no-populate]")
-        print("\nExample:")
-        print("  python ocr_extraction_workflow.py catalog.pdf")
-        print("  python ocr_extraction_workflow.py catalog.pdf --no-populate")
+        print("\nExample: python ocr.py catalog.pdf")
         sys.exit(1)
     
     file_path = sys.argv[1]
-    populate_dbs = '--no-populate' not in sys.argv
     
-    # Check if file exists
     if not Path(file_path).exists():
         print(f"Error: File not found: {file_path}")
         sys.exit(1)
     
-    # Initialize extractor
     try:
         extractor = ProductCatalogExtractor()
     except ValueError as e:
@@ -333,13 +269,11 @@ def main():
         print("  export ANTHROPIC_API_KEY='your-api-key'")
         sys.exit(1)
     
-    # Process catalog
     try:
-        extractor.process_catalog(file_path, populate_dbs=populate_dbs)
+        extractor.process_catalog(file_path)
     except Exception as e:
         print(f"\nFatal error: {e}")
         sys.exit(1)
-
 
 if __name__ == "__main__":
     main()

@@ -330,7 +330,7 @@ class QdrantProductLoader:
 # MODULE-LEVEL FUNCTIONS (for external usage like ocr.py)
 # ============================================================================
 
-def populate_from_data(products: List[Dict[str, Any]]):
+def populate_from_data(products):
     """
     Populate Qdrant database from product data list.
     This function is called from ocr.py's populate_databases method.

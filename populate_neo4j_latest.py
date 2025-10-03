@@ -6,14 +6,13 @@ from neo4j import GraphDatabase
 from typing import Dict, List, Any, Set
 
 class Neo4jProductLoader:
-
-    def __init__(self, uri: str, user: str, password: str, auto_create_schema: bool = True):
+    
+    def __init__(self, uri, user, password, auto_create_schema = True):
 
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
         
-        # Create schema and indexes at instantiation
         if auto_create_schema:
-            print("Initializing Neo4j schema and indexes.")
+            print("Initializing Neo4j schema and indexes")
             self._create_schema_and_indexes()
             print("Schema and indexes ready")
         
@@ -22,56 +21,40 @@ class Neo4jProductLoader:
         
     def __enter__(self):
         return self
-        
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit."""
-        self.close()
-    
-    # ========================================================================
-    # SCHEMA MANAGEMENT
-    # ========================================================================
     
     def _create_schema_and_indexes(self):
-        """Create all necessary indexes and constraints."""
         with self.driver.session() as session:
-            # Create unique constraint on Product id
             session.run("""
                 CREATE CONSTRAINT product_id_unique IF NOT EXISTS
                 FOR (p:Product) REQUIRE p.id IS UNIQUE
             """)
             
-            # Create unique constraint on Attribute
             session.run("""
                 CREATE CONSTRAINT attribute_unique IF NOT EXISTS
                 FOR (a:Attribute) REQUIRE (a.key, a.value) IS UNIQUE
             """)
             
-            # Drop and recreate full-text search index
             try:
                 session.run("DROP INDEX product_search IF EXISTS")
             except:
                 pass
                 
-            # Create full-text index on multiple fields including search_terms
             session.run("""
                 CREATE FULLTEXT INDEX product_search IF NOT EXISTS
                 FOR (p:Product)
                 ON EACH [p.name, p.short_description, p.search_terms]
             """)
             
-            # Create index on name for CONTAINS queries
             session.run("""
                 CREATE INDEX product_name_index IF NOT EXISTS
                 FOR (p:Product) ON (p.name)
             """)
             
-            # Create index on search_terms for efficient lookup
             session.run("""
                 CREATE INDEX product_search_terms_index IF NOT EXISTS
                 FOR (p:Product) ON (p.search_terms)
             """)
             
-            # Create indexes on Attribute
             session.run("""
                 CREATE INDEX attribute_key_index IF NOT EXISTS
                 FOR (a:Attribute) ON (a.key)
@@ -81,10 +64,6 @@ class Neo4jProductLoader:
                 CREATE INDEX attribute_value_index IF NOT EXISTS
                 FOR (a:Attribute) ON (a.value)
             """)
-    
-    # ========================================================================
-    # DATABASE MANAGEMENT
-    # ========================================================================
     
     def check_existing_data(self) -> bool:
         """Check if database contains any data."""
@@ -108,15 +87,7 @@ class Neo4jProductLoader:
             }
     
     def clear_database(self, confirm: bool = True) -> bool:
-        """
-        Clear all data from the database.
-        
-        Args:
-            confirm: If True, ask for user confirmation before clearing
-            
-        Returns:
-            True if cleared or database was empty, False if user declined
-        """
+
         has_data = self.check_existing_data()
         
         if not has_data:
@@ -267,9 +238,12 @@ class Neo4jProductLoader:
                search_terms=search_terms_str,  # String for full-text search
                search_terms_list=list(search_terms))  # List for exact matching
         
-    def _create_attribute_and_relationship(self, tx, product_id: str, 
-                                          attribute_type: str, attributes: List[Dict[str, str]]):
-        """Create attribute nodes and relationships to products."""
+    def _create_attributes_and_relationships(self, tx, product_id: str, 
+                                            attributes: List[Dict[str, str]]):
+        """
+        Create attribute nodes and relationships to products.
+        This method handles ANY attributes - no type restrictions.
+        """
         if not attributes: 
             return
             
@@ -280,15 +254,13 @@ class Neo4jProductLoader:
             query = """
                 MATCH (p:Product {id: $product_id})
                 MERGE (a:Attribute {key: $key, value: $value})
-                SET a.type = $type
                 MERGE (p)-[:HAS_ATTRIBUTE]->(a)
             """
             
             tx.run(query,
                    product_id=product_id,
                    key=attr['key'],
-                   value=attr['value'],
-                   type=attribute_type)
+                   value=attr['value'])
     
     # ========================================================================
     # DATA LOADING
@@ -315,19 +287,11 @@ class Neo4jProductLoader:
                         # Create Product node with search terms
                         self._create_product_node(tx, product)
                         
-                        # Create attributes
-                        attribute_types = [
-                            ('filterAttributes', 'filter'),
-                            ('miscAttributes', 'misc'),
-                            ('configAttributes', 'config'),
-                            ('keyAttributes', 'key')
-                        ]
-                        
-                        for attr_field, attr_type in attribute_types:
-                            attributes = product.get(attr_field, [])
-                            self._create_attribute_and_relationship(
-                                tx, product['id'], attr_type, attributes
-                            )
+                        # Create attributes (single array - handles ANY attributes)
+                        attributes = product.get('attributes', [])
+                        self._create_attributes_and_relationships(
+                            tx, product['id'], attributes
+                        )
                     
                     tx.commit()
             
@@ -338,7 +302,12 @@ class Neo4jProductLoader:
         print(f"Successfully loaded {len(products)} products with pre-computed search terms")
     
     def load_products_from_json(self, json_file_path: str):
-
+        """
+        Load products from a JSON file.
+        
+        Args:
+            json_file_path: Path to the JSON file containing products
+        """
         try:
             with open(json_file_path, 'r', encoding='utf-8') as f:
                 products = json.load(f)
@@ -370,14 +339,7 @@ class Neo4jProductLoader:
 # ============================================================================
 
 def populate_from_data(products: List[Dict[str, Any]], clear_first: bool = False):
-    """
-    Populate Neo4j database from product data list.
-    This function is called from ocr.py's populate_databases method.
-    
-    Args:
-        products: List of product dictionaries in Neo4j format
-        clear_first: If True, clear the database before loading (default: False)
-    """
+
     neo4j_uri = os.environ.get('NEO4J_URI', 'bolt://localhost:7687')
     neo4j_user = os.environ.get('NEO4J_USER', 'neo4j')
     neo4j_password = os.environ.get('NEO4J_PASSWORD', 'password')
@@ -402,6 +364,9 @@ def main():
     json_file = 'final_data_neo4j.json'
     
     with Neo4jProductLoader(neo4j_uri, neo4j_user, neo4j_password) as loader:
+        # Clear database with user confirmation
+        if not loader.clear_database(confirm=True):
+            sys.exit(0)
         
         # Load data from JSON file
         print(f"\nLoading data from '{json_file}'")
